@@ -1,84 +1,105 @@
 <?php
 
-$fp = fopen("data.txt", "r");
+$Fp = fopen("data.txt", "r");
 
-$line_max = 10;
-$line_num = 1;
-$Total_Mileage = 0;
-$Total_Ride_Time = 0;
-$fare = 0;
-$PreTimeStamp = 0;
+// 1回目のデータ読み込み /////////////////////////////////////////////////////
+$Data = fgets($Fp);
+$Value = explode(' ', $Data);
+// 現在の時刻
+$Current_TimeStamp = $Value[0];   
+// 前回記録時からの走行距離
+$Mileage_Since_Last_Time_m = $Value[1] ;
+// 画面表示
+echo "現在の時刻：".$Current_TimeStamp."<br>";
+echo "前回記録時からの走行距離：".$Mileage_Since_Last_Time_m." [m]<br><br>";
 
-while ($line_num < $line_max){
-
-    // データの読み込みを確認
-    $line = fgets($fp);
-    echo "$line<br>";
-
-    // 読み込んだデータを分割し、変数に代入
-    $value = explode(' ', $line);
-    $TimeStamp = $value[0];
-    $Mileage = $value[1];
-
-    // データの読み込みを確認
-    // echo "前回記録時点からの走行距離[m]".$value;
-    // echo "記録時刻".$Time;
-
-    // 乗車時間と走行距離の総和
-    $Total_Ride_Time += (var_dump($TimeStamp - $PreTimeStamp));
-    $Total_Mileage += (float)$Mileage;
+//2回目のデータを読みこむ前に前回の時刻を保存する変数を更新
+$Last_TimeStamp = $Current_TimeStamp;
 
 
 
 
-
-    $PreTimeStamp = $TimeStamp;     // 次の処理に移る前に"前回の記録時刻"を更新
-    $line_num += 1;
-
-
-
-    function CalculationTimeDiff($a_NowRecordedTime, $a_LastRecordedTime){
-        echo "";
-        return $a_NowRecordedTime - $a_LastRecordedTime;
-    }
+// 2回目のデータ読み込み /////////////////////////////////////////////////////
+// 読み込むログデータの行数の最大
+$Max_Num = 500;
+$Reference_Low_Speed = 10;
+$Midnight_TimeStamp = "22:00:00.000";
+$Sum_of_Low_Speed_Running_Time = (float)0;
+$Sum_of_Daytime_Mileage = (float)0;
+$Sum_of_Nighttime_Mileage = (float)0;
 
 
-    function CalculationNormalFare($a_){
-        echo "";
-    }
-
-    // //通常運賃の計算
-    // if($Total_Mileage < 1052){
-    //     $fare = 410;
-    // }
-    // else{
-    //     $Remaining_Mileage = $Total_Mileage -1052;
-    //     $fare = 410 + 80 * (int)($Remaining_Mileage / 237);
-    // }
-
-    // //低速運賃の計算
-
-
-
-    // //夜間運賃の計算
-
-
-
-    // // echo "$line_num<br>";
-
-    // echo "記録時刻".$line_num."：".$value[0]."<br>";
-
-    // // 走行距離確認[km]
-    // echo "走行距離：";
-    // echo $Mileage."[m]<br>";
-
-    // echo "運賃：";
-    // echo $fare."[円]<br>";
+for ($Num = 1; $Num < $Max_Num; $Num++){
     
-    // echo "<br><br>";
+    $Data = fgets($Fp);
 
+    // 読み込むデータがない場合、処理を終了
+    if($Data == null){
+        break;
+    }
+
+    $Value = explode(' ', $Data);
+
+    // 現在の時刻
+    $Current_TimeStamp = $Value[0];   
+
+     // 前回記録時からの走行距離
+    $Mileage_Since_Last_Time_m = $Value[1] ;
+
+    // 一番初めは前回記録時の時刻が無い為、差分が出ないように調整する
+    if($Num == 0){
+        $Last_TimeStamp = $Current_TimeStamp;
+    }
+
+    // TODO: ミリ秒も計算に入れたい
+    // 前回記録時からの時間を算出
+    $diff_seconds = (strtotime($Current_TimeStamp) - strtotime($Last_TimeStamp));
+
+
+
+    $Mileage_Since_Last_Time_km = (double)$Mileage_Since_Last_Time_m / 1000 ;
+    $diff_hour = $diff_seconds / 3600 ;
+
+    // 低速走行時間の合計を算出
+    $kmph = $Mileage_Since_Last_Time_km / $diff_hour ;
+    if($kmph < $Reference_Low_Speed){
+        $Sum_of_Low_Speed_Running_Time += (float)$diff_seconds;
+    }
+
+    // 走行距離の合計を算出
+    if(strtotime($Current_TimeStamp) < strtotime($Midnight_TimeStamp)){
+        $Sum_of_Daytime_Mileage += (float)$Mileage_Since_Last_Time_m;
+    }
+    else{
+        $Sum_of_Nighttime_Mileage += (float)$Mileage_Since_Last_Time_m;
+    }
+
+    // 画面表示
+    echo "現在の時刻：".$Current_TimeStamp."<br>";
+    echo "前回記録時からの走行距離：".$Mileage_Since_Last_Time_m." [m]<br>";
+    echo "前回記録時からの時間：".$diff_seconds." [秒]<br>";
+    echo "時速：".$kmph."[km/h]<br><br>";
+
+    // 次の処理に移る前に"前回の記録時刻"を更新
+    $Last_TimeStamp = $Current_TimeStamp;
 }
 
-fclose($fp);
+    //運賃を算出する　ロジックがまとまっていない_20210110
+    // $Sum_of_Daytime_Fare = 
+
+
+// 画面表示
+echo "低速走行時間合計：".$Sum_of_Low_Speed_Running_Time."[秒]<br>";
+echo "乗車距離の合計(日中)：".$Sum_of_Daytime_Mileage."[m]<br>";
+echo "乗車距離の合計(夜間)：".$Sum_of_Nighttime_Mileage."[m]<br><br>";
+
+
+
+// 関数 //////////////////////////////////////////////////////////////////
+function CalculationFare(){
+    echo "";
+}
+
+
 
 ?>
