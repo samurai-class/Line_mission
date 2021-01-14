@@ -25,9 +25,8 @@ $Max_Num = 500;
 $Reference_Low_Speed = 10;
 $Midnight_TimeStamp = "22:00:00.000";
 $Sum_of_Low_Speed_Running_Time = (float)0;
-$Sum_of_Daytime_Mileage = (float)0;
-$Sum_of_Nighttime_Mileage = (float)0;
-
+$Sum_of_Mileage = (float)0;
+$Base_Fare_Mileage = 1052;
 
 for ($Num = 1; $Num < $Max_Num; $Num++){
     
@@ -51,7 +50,6 @@ for ($Num = 1; $Num < $Max_Num; $Num++){
         $Last_TimeStamp = $Current_TimeStamp;
     }
 
-    // TODO: ミリ秒も計算に入れたい
     // 前回記録時からの時間を算出
     $diff_seconds = (strtotime($Current_TimeStamp) - strtotime($Last_TimeStamp));
 
@@ -66,12 +64,12 @@ for ($Num = 1; $Num < $Max_Num; $Num++){
         $Sum_of_Low_Speed_Running_Time += (float)$diff_seconds;
     }
 
-    // 走行距離の合計を算出
+    // 走行距離の合計を算出　(夜間も考慮)
     if(strtotime($Current_TimeStamp) < strtotime($Midnight_TimeStamp)){
-        $Sum_of_Daytime_Mileage += (float)$Mileage_Since_Last_Time_m;
+        $Sum_of_Mileage += (float)$Mileage_Since_Last_Time_m;
     }
     else{
-        $Sum_of_Nighttime_Mileage += (float)$Mileage_Since_Last_Time_m;
+        $Sum_of_Mileage += (float)($Mileage_Since_Last_Time_m*1.25);
     }
 
     // 画面表示
@@ -84,14 +82,27 @@ for ($Num = 1; $Num < $Max_Num; $Num++){
     $Last_TimeStamp = $Current_TimeStamp;
 }
 
-    //運賃を算出する　ロジックがまとまっていない_20210110
+    //運賃を算出する
+
+    //低速走行の運賃
+    $Sum_of_Low_Speed_Running_Fare = ($Sum_of_Low_Speed_Running_Time / 90) * 80;
+
+    //通常の運賃
+    if($Sum_of_Mileage < $Base_Fare_Mileage){
+        $Sum_of_Fare = 410 + $Sum_of_Low_Speed_Running_Fare;
+    }
+    else{
+        $Sum_of_Fare = 410 + (($Sum_of_Mileage - 1052) / 237 ) * 80;
+    }
+
+
     // $Sum_of_Daytime_Fare = 
 
 
 // 画面表示
 echo "低速走行時間合計：".$Sum_of_Low_Speed_Running_Time."[秒]<br>";
-echo "乗車距離の合計(日中)：".$Sum_of_Daytime_Mileage."[m]<br>";
-echo "乗車距離の合計(夜間)：".$Sum_of_Nighttime_Mileage."[m]<br><br>";
+echo "乗車距離の合計：".$Sum_of_Mileage."[m]<br>";
+echo "運賃：".(int)$Sum_of_Fare."[円]<br>";
 
 
 
