@@ -1,21 +1,53 @@
 <?php
 
-$Fp = fopen("data_1.txt", "r");
 $Result_Code = 0;
+$Max_Num = 500;
+$Reference_Low_Speed = 10;
+$Midnight_TimeStamp = "22:00:00.000";
+$Sum_of_Low_Speed_Running_Time = (float)0;
+$Sum_of_Mileage = (float)0;
+$Base_Fare_Mileage = 1052;
+
+
+$Fp = fopen("data_1.txt", "r");
+
+for ($Num = 0; $Num < $Max_Num; $Num++)
+{
+    $Value = readData($Fp, $Num);
+    // 現在の時刻
+    $Current_TimeStamp = $Value[0];   
+    // 前回記録時からの走行距離
+    $Mileage_Since_Last_Time_m = $Value[1] ;
+
+    if($Mileage_Since_Last_Time_m == null){
+        break;
+    }
+
+    // 画面表示
+    DisplayOnScreen($Current_TimeStamp, "現在の時刻");
+    DisplayOnScreen($Mileage_Since_Last_Time_m, "前回記録時からの走行距離[m]");
+    echo "<br>";
+
+
+}
+
+
+
+die("強制終了");
+
+
+function readData($a_Fp, $a_Num)
+{
+    $Data = fgets($a_Fp);
+    $Value = explode(' ', $Data);
+
+    return $Value;
+}
+
 
 // 1回目のデータ読み込み /////////////////////////////////////////////////////
 echo "1行目のデータ<br>";
 
-$Data = fgets($Fp);
-$Value = explode(' ', $Data);
-// 現在の時刻
-$Current_TimeStamp = $Value[0];   
-// 前回記録時からの走行距離
-$Mileage_Since_Last_Time_m = $Value[1] ;
-// 画面表示
-DisplayOnScreen($Current_TimeStamp, "現在の時刻");
-DisplayOnScreen($Mileage_Since_Last_Time_m, "前回記録時からの走行距離[m]");
-echo "<br>";
 
 //2回目のデータを読みこむ前に前回の時刻を保存する変数を更新
 $Last_TimeStamp = $Current_TimeStamp;
@@ -25,18 +57,8 @@ $Last_TimeStamp = $Current_TimeStamp;
 
 // 2回目のデータ読み込み /////////////////////////////////////////////////////
 // 読み込むログデータの行数の最大
-$Max_Num = 500;
-$Reference_Low_Speed = 10;
-$Midnight_TimeStamp = "22:00:00.000";
-$Sum_of_Low_Speed_Running_Time = (float)0;
-$Sum_of_Mileage = (float)0;
-$Base_Fare_Mileage = 1052;
 
 for ($Num = 1; $Num < $Max_Num; $Num++){
-
-
-    echo ($Num+1)."行目のデータ<br>";
-
 
     // 一番上のデータを読み込む >> データがない場合、繰り返し処理を終了
     $Data = fgets($Fp);
@@ -44,6 +66,7 @@ for ($Num = 1; $Num < $Max_Num; $Num++){
         break;
     }
 
+    echo ($Num+1)."行目のデータ<br>";
 
     // 読み込んだデータを分割し、それぞれ変数に代入
     $Value = explode(' ', $Data);
@@ -56,10 +79,10 @@ for ($Num = 1; $Num < $Max_Num; $Num++){
     // 前回記録時からの時間を算出
     $diff_seconds = (strtotime($Current_TimeStamp) - strtotime($Last_TimeStamp));   // 秒表記
     $diff_hour = $diff_seconds / 3600 ;                                             // 時間表記
-    // DisplayOnScreen(strtotime($Current_TimeStamp), "現在の時刻(計算ができる形式)");
-    // DisplayOnScreen(strtotime($Last_TimeStamp), "一つ前の時刻(計算ができる形式)");
-    // DisplayOnScreen((int)number_format($diff_seconds), "前回記録時からの時間[秒]");
-    // DisplayOnScreen((int)number_format($diff_seconds), "前回記録時からの時間[時間]");
+    DisplayOnScreen(strtotime($Current_TimeStamp), "現在の時刻(計算ができる形式)");
+    DisplayOnScreen(strtotime($Last_TimeStamp), "一つ前の時刻(計算ができる形式)");
+    DisplayOnScreen((int)number_format($diff_seconds), "前回記録時からの時間[秒]");
+    DisplayOnScreen((int)number_format($diff_seconds), "前回記録時からの時間[時間]");
 
 
     //前回記録時からの時速を算出
@@ -81,8 +104,6 @@ for ($Num = 1; $Num < $Max_Num; $Num++){
         $Sum_of_Mileage += (float)($Mileage_Since_Last_Time_m*1.25);
     }
 
-
-
     // 次の処理に移る前に"前回の記録時刻"を更新
     $Last_TimeStamp = $Current_TimeStamp;
     echo "<br>";
@@ -98,7 +119,7 @@ for ($Num = 1; $Num < $Max_Num; $Num++){
         $Sum_of_Normal_Fare = 410 + $Sum_of_Low_Speed_Running_Fare;
     }
     else{
-        $Sum_of_Normal_Fare = 410 + (($Sum_of_Mileage - 1052) / 237 ) * 80;
+        $Sum_of_Normal_Fare = 410 + (($Sum_of_Mileage - $Base_Fare_Mileage) / 237 ) * 80;
     }
 
     $Sum_of_Fare = $Sum_of_Low_Speed_Running_Fare + $Sum_of_Normal_Fare;
